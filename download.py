@@ -1,6 +1,7 @@
 import argparse
 import os.path as osp
 from datasets import load_dataset
+import shutil
 
 from config import update_config, config
 from utils import common
@@ -8,6 +9,8 @@ from utils import common
 def download(cfg):
     dataset_root_dir = osp.join(cfg.data.root_dir, cfg.data.name)
     dataset_dir = osp.join(dataset_root_dir, 'orig')
+    
+    if osp.exists(dataset_dir): shutil.rmtree(dataset_dir)
     
     dataset_types = cfg.data.types
     for dataset_type in dataset_types:

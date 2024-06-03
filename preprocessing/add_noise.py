@@ -1,8 +1,9 @@
 import os
 import os.path as osp
+import shutil
 import argparse
 import numpy as np
-from tqdm import tqdm 
+from tqdm import tqdm
 
 from datasets import Dataset, load_from_disk
 
@@ -37,6 +38,8 @@ class OpenAIHumanFeedbackNoise():
         
         self.source_dataset_dir = osp.join(self.dataset_root_dir, 'orig', self.type)
         self.target_dataset_dir  = osp.join(self.dataset_root_dir, 'noise_{}'.format(str(self.noise_level).replace('.', '')), self.type)
+        
+        if osp.exists(self.target_dataset_dir): shutil.rmtree(self.target_dataset_dir)
         
         common.ensure_dir(self.target_dataset_dir)
 
