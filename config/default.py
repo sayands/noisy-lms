@@ -16,6 +16,9 @@ _C.data.name = 'OpenAIHumanFeedback'
 _C.data.root_dir = ''
 _C.data.types = []
 
+_C.preprocess = CN()
+_C.preprocess.noise_level = 0 # defined in percentage
+
 def update_config(cfg, filename):
     cfg.defrost()
     cfg.merge_from_file(filename)
