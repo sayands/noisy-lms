@@ -1,0 +1,8 @@
+project_name : 'Noisy-LM'
+exp_name     : 'download'
+output_dir   : ''
+
+data:
+  root_dir : '/media/sdebsarkar/extra-hdd/datasets/CSNLP/'
+  name     :  'OpenAIHumanFeedback'
+  types    : ['axis', 'comparisons']
