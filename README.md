@@ -1,3 +1,10 @@
+<div align='center'>
+<h2 align="center">How Much Noise is Too Much Noise? </h2>
+<h3 align="center">Ankita Ghosh, Sayan Deb Sarkar, Stefan Stefanache </h3>
+Computational Semantics For Natural Language Processing - Spring 2024, ETH Zurich 
+
+</div>
+
 ### Dependencies :memo:
 The main dependencies of the project are the following:
 ```yaml
