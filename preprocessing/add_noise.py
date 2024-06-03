@@ -83,7 +83,6 @@ def parse_args():
 if __name__ == '__main__':
     args, _ = parse_args()
     cfg = update_config(config, args.config)
-    split = args.split
     
     openai_human_feedback = OpenAIHumanFeedbackNoise(cfg, args.split)
     openai_human_feedback.flip_labels()

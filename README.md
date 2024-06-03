@@ -37,4 +37,6 @@ Flip labels using:
 bash scripts/preprocess/add_noise_hf.sh
 ```
 
+### Notes
 
+- From original OpenAI [repo](https://github.com/openai/summarize-from-feedback), posts / articles marked with ``valid1`` were used to select models during training, so we restricted to ``valid2`` labels for final evaluations. We should follow the same, hence, label flipping only on ``train``, not on any of the ``valid``.
