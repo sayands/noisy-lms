@@ -1,7 +1,4 @@
 from yacs.config import CfgNode as CN
-import os
-import os.path as osp
-import datetime
 
 _C = CN()
 _C.project_name = 'Noisy-LM'

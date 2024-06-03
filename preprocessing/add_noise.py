@@ -4,25 +4,26 @@ import shutil
 import argparse
 import numpy as np
 from tqdm import tqdm
+import sys
+import logging as log
 
 from datasets import Dataset, load_from_disk
 
-import logging as log
+
+
+from config import config, update_config
+from utils import common
+
 log.getLogger().setLevel(log.INFO)
 log.basicConfig(level=log.INFO,
                 format='%(asctime)s - %(levelname)s - %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S')
-
-import sys
-
 workspace_dir = os.environ['NOISY_LM_DIR']
 src_dir = osp.join(workspace_dir, 'src')
 
 sys.path.append(workspace_dir)
 sys.path.append(src_dir)
 
-from config import config, update_config
-from utils import common
 
 class OpenAIHumanFeedbackNoise():
     def __init__(self, cfg, split) -> None:
@@ -39,7 +40,8 @@ class OpenAIHumanFeedbackNoise():
         self.source_dataset_dir = osp.join(self.dataset_root_dir, 'orig', self.type)
         self.target_dataset_dir  = osp.join(self.dataset_root_dir, 'noise_{}'.format(str(self.noise_level).replace('.', '')), self.type)
         
-        if osp.exists(self.target_dataset_dir): shutil.rmtree(self.target_dataset_dir)
+        if osp.exists(self.target_dataset_dir): 
+            shutil.rmtree(self.target_dataset_dir)
         
         common.ensure_dir(self.target_dataset_dir)
 
