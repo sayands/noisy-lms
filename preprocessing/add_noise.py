@@ -9,6 +9,11 @@ import logging as log
 
 from datasets import Dataset, load_from_disk
 
+workspace_dir = os.environ['NOISY_LM_DIR']
+src_dir = osp.join(workspace_dir, 'src')
+
+sys.path.append(workspace_dir)
+sys.path.append(src_dir)
 
 
 from config import config, update_config
@@ -18,11 +23,6 @@ log.getLogger().setLevel(log.INFO)
 log.basicConfig(level=log.INFO,
                 format='%(asctime)s - %(levelname)s - %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S')
-workspace_dir = os.environ['NOISY_LM_DIR']
-src_dir = osp.join(workspace_dir, 'src')
-
-sys.path.append(workspace_dir)
-sys.path.append(src_dir)
 
 
 class OpenAIHumanFeedbackNoise():
