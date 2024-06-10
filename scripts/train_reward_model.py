@@ -1,3 +1,4 @@
+# Usage: python scripts/train_reward_model.py --output_dir ./ --model_name_or_path=facebook/opt-350m --max_length=128
 from trl import (
     RewardTrainer,
     ModelConfig,
@@ -46,9 +47,9 @@ if __name__ == "__main__":
 
     # HARDCODED <3
     dataset = datasets.load_from_disk(
-        "/home/stefan/noisy-lms/datasets/OpenAIHumanFeedback/orig/comparisons"
+        "/media/sdebsarkar/extra-hdd/datasets/CSNLP/OpenAIHumanFeedback/orig/comparisons"
     )
-
+    
     def preprocess_function(examples):
         new_examples = {
             "input_ids_chosen": [],
@@ -56,34 +57,28 @@ if __name__ == "__main__":
             "input_ids_rejected": [],
             "attention_mask_rejected": [],
         }
+        for summary, choice in zip(examples['summaries'], examples['choice']):
+            chosen = summary[choice]["text"]
+            rejected = summary[abs(choice - 1)]["text"]
 
-        summaries = examples["summaries"]
-        choice = examples["choice"]
+            tokenized_chosen = tokenizer(chosen)
+            tokenized_rejected = tokenizer(rejected)
 
-        tokenized_chosen = tokenizer(
-            summaries[choice]["text"],
-            max_length=512,
-            truncation=True,
-            padding="max_length",
-        )
-        tokenized_rejected = tokenizer(
-            summaries[abs(choice - 1)]["text"],
-            max_length=512,
-            truncation=True,
-            padding="max_length",
-        )
+            new_examples["input_ids_chosen"].append(tokenized_chosen["input_ids"])
+            new_examples["attention_mask_chosen"].append(tokenized_chosen["attention_mask"])
 
-        new_examples["input_ids_chosen"].append(tokenized_chosen["input_ids"])
-        new_examples["attention_mask_chosen"].append(tokenized_chosen["attention_mask"])
-
-        new_examples["input_ids_rejected"].append(tokenized_rejected["input_ids"])
-        new_examples["attention_mask_rejected"].append(
-            tokenized_rejected["attention_mask"]
-        )
+            new_examples["input_ids_rejected"].append(tokenized_rejected["input_ids"])
+            new_examples["attention_mask_rejected"].append(
+                tokenized_rejected["attention_mask"]
+            )
 
         return new_examples
 
-    dataset = dataset.map(preprocess_function, num_proc=4)
+    dataset = dataset.map(preprocess_function, batched = True, num_proc=4)
+    dataset = dataset.filter(
+        lambda x: len(x["input_ids_chosen"]) <= 512 and len(x["input_ids_rejected"]) <= 512
+    )
+    
     train_dataset = dataset["train"]
     train_dataset = train_dataset.remove_columns(
         ["info", "summaries", "choice", "worker", "batch", "split", "extra"]
