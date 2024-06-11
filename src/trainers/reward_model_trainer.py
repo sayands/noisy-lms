@@ -70,7 +70,6 @@ if __name__ == "__main__":
     model.config.end_token_id = tokenizer.eos_token_id
     model.config.pad_token_id = model.config.eos_token_id
     
-
     dataset_config.max_token_length = reward_config.max_length
     dataset = make_dataset(dataset_config)
     train_dataset = dataset["train"]

@@ -47,6 +47,23 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             raise ValueError(f"Unknown noise type: {cfg.dataset_noise_type}")
 
     @classmethod
+    def preprocess_batch_for_dpo(
+        cls,
+        examples: dict[str, Any],
+    ) -> datasets.Dataset:
+        new_examples = { "prompt" : [], "chosen" :  [], "rejected" : []}
+        
+        for info, summary, choice in zip(examples["info"], examples["summaries"], examples["choice"]):
+            prompt = info["post"]
+            chosen = summary[choice]["text"]
+            rejected = summary[1 - choice]["text"]
+            
+            new_examples["prompt"].append(prompt)
+            new_examples["chosen"].append(chosen)
+            new_examples["rejected"].append(rejected)
+        return new_examples
+    
+    @classmethod
     def preprocess_batch_for_reward_trainer(
         cls,
         examples: dict[str, Any],
@@ -87,7 +104,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         dataset_dict = datasets.load_dataset(cls.DATASET_URL, "comparisons")
         assert isinstance(dataset_dict, datasets.DatasetDict)
 
-        dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
+        dataset_dict["train"] = dataset_dict["train"].select(range(2000))
         processed_train = cls.add_noise(dataset_dict["train"], cfg)
         processed_validation = cls.add_noise(dataset_dict["validation"], cfg)
 
@@ -125,7 +142,23 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length and len(x["input_ids_rejected"]) <= cfg.max_token_length
             )
             
-            
+        elif cfg.preprocess_for_dpo:
+            processed_train = processed_train.map(
+                functools.partial(
+                    cls.preprocess_batch_for_dpo,
+                ),
+                batched=True,
+                num_proc=4,
+            )
+            processed_validation = processed_validation.map(
+                functools.partial(
+                    cls.preprocess_batch_for_dpo,
+                ),
+                batched=True,
+                num_proc=4,
+            )
+        else:
+            raise NotImplementedError
 
         return datasets.DatasetDict(
             {
