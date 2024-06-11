@@ -23,12 +23,6 @@ from src.datasets import tldr
 from configs import TrainingConfig
 from utils import common
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='Add Noise To dataset')
-    parser.add_argument('--config', type=str, default='', help='Path to the config file')
-    
-    return parser.parse_known_args()
-
 if __name__ == '__main__':
     parser = HfArgumentParser((TrainingConfig))  # type: ignore[reportArgumentType]
     train_config = parser.parse_args_into_dataclasses()[0]
