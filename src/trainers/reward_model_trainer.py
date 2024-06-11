@@ -1,20 +1,5 @@
-""" 
-Usage:
-
-python3.9 train_reward_model.py \
-    --output_dir=out \
-    --model_name_or_path=facebook/opt-350m \
-    --max_length=128 \
-    --dataset_name=openai/summarize_from_feedback \
-    --dataset_noise_type=flip_labels \
-    --dataset_noise_level=0.5 \
-    --dataset_noise_seed=42 \
-    --preprocess_for_reward_trainer \
-    --preprocess_tokenizer=facebook/opt-350m \
-    --report_to=wandb \
-    --run_name=fb-opt-350m-0.5-noise 
-"""
-
+import os
+import os.path as osp
 import logging
 
 import torch
@@ -22,6 +7,7 @@ from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     HfArgumentParser,
+    TrainingArguments
 )
 from trl import (
     ModelConfig,
@@ -31,12 +17,26 @@ from trl import (
     get_quantization_config,
 )
 
-from src.datasets.common import DatasetConfig
+import sys
+workspace_dir = os.environ['NOISY_LM_DIR']
+src_dir = osp.join(workspace_dir, 'src')
+sys.path.append(workspace_dir)
+sys.path.append(src_dir)
+
+from src.configs import DatasetConfig
+from src.datasets import make_dataset
+from src.utils import common
 
 if __name__ == "__main__":
-    parser = HfArgumentParser((RewardConfig, ModelConfig, DatasetConfig))  # type: ignore[reportArgumentType]
-    reward_config, model_config, dataset_config = parser.parse_args_into_dataclasses()
-    reward_config.gradient_checkpointing_kwargs = dict(use_reentrant=False)
+    parser = HfArgumentParser((ModelConfig, DatasetConfig, RewardConfig))  # type: ignore[reportArgumentType]
+    model_config, dataset_config, reward_config = parser.parse_args_into_dataclasses()
+    
+    dataset_noise_level_name = str(dataset_config.dataset_noise_level).split('.')
+    dataset_noise_level_name = str(dataset_noise_level_name[0]) + str(dataset_noise_level_name[1])
+    
+    reward_config.run_name =  reward_config.run_name + '_' + dataset_noise_level_name
+    reward_config.output_dir = osp.join(reward_config.output_dir, reward_config.run_name)
+    common.ensure_dir(reward_config.output_dir)
 
     if (
         dataset_config.preprocess_for_reward_trainer
@@ -63,10 +63,40 @@ if __name__ == "__main__":
     model = AutoModelForSequenceClassification.from_pretrained(
         model_config.model_name_or_path, num_labels=1, **model_kwargs
     )
+    
+    tokenizer.pad_token = tokenizer.eos_token
+    model.resize_token_embeddings(len(tokenizer))
+    tokenizer.pad_token_id = tokenizer.eos_token_id
+    model.config.end_token_id = tokenizer.eos_token_id
+    model.config.pad_token_id = model.config.eos_token_id
+    
 
-    dataset = dataset_config.make_dataset()
+    dataset_config.max_token_length = reward_config.max_length
+    dataset = make_dataset(dataset_config)
     train_dataset = dataset["train"]
     val_dataset = dataset["validation"]
+    
+    reward_config = RewardConfig(
+        output_dir=reward_config.output_dir,
+        overwrite_output_dir = True,
+        eval_strategy="steps",
+        eval_accumulation_steps=1,
+        learning_rate= reward_config.learning_rate,
+        per_device_train_batch_size= reward_config.per_device_train_batch_size,
+        per_device_eval_batch_size= reward_config.per_device_eval_batch_size,
+        half_precision_backend=True,
+        fp16=True,
+        max_length=reward_config.max_length,
+        adam_beta1=reward_config.adam_beta1, adam_beta2=reward_config.adam_beta2,
+        gradient_accumulation_steps= reward_config.gradient_accumulation_steps,
+        num_train_epochs=reward_config.num_train_epochs,
+        warmup_steps=reward_config.warmup_steps,
+        eval_steps=reward_config.eval_steps,
+        save_steps=reward_config.save_steps,
+        load_best_model_at_end=True,
+        logging_steps=reward_config.logging_steps,
+        remove_unused_columns=False,
+        run_name = reward_config.run_name)
 
     trainer = RewardTrainer(
         model=model,

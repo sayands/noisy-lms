@@ -1,15 +1,12 @@
 from dataclasses import dataclass
+from typing import Any, Protocol, Union
+
 @dataclass
-class TrainingConfig:
+class DatasetConfig:
     dataset_name: str
-    exp_name: str
-    output_dir: str
-    max_input_length: int = 128
-    learning_rate: float = 1e-05
-    train_batch_size: int = 16
-    eval_batch_size: int = 8
-    grad_acc_steps:  int = 1
-    max_epoch: int = 5
-    eval_steps: int = 1000
-    save_steps: int = 1000
-    logging_steps: int = 50
+    dataset_noise_type: str = "flip_labels"
+    dataset_noise_level: float = 0.0
+    dataset_noise_seed: int = 42
+    preprocess_for_reward_trainer: bool = False
+    preprocess_tokenizer: Union[str, None] = None
+    max_token_length: int = 128
