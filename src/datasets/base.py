@@ -1,7 +1,9 @@
 import datasets
 from typing import Any, Protocol, Union
+from dataclasses import dataclass
+from typing import Union
 
-from datasets.common import DatasetConfig
+from src.configs import DatasetConfig
 
 class DatasetNoisifier(Protocol):
     @classmethod

@@ -5,9 +5,8 @@ from typing import Any, Protocol, Union
 import datasets
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
-
+from src.configs import DatasetConfig
 from .base import DatasetNoisifier, DatasetRewardTrainerPreprocessor, ConstructFromConfig
-from .common import DatasetConfig
 
 class OpenAIHumanFeedbackDatasetPreprocessor(
     DatasetRewardTrainerPreprocessor,
@@ -23,16 +22,18 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         cfg: DatasetConfig,
     ) -> datasets.Dataset:
         num_samples_to_add_noise = int(cfg.dataset_noise_level * len(dataset))
+        
+        np.random.seed(cfg.dataset_noise_seed)
         noise_indices = np.random.choice(
             len(dataset), num_samples_to_add_noise, replace=False
         )
 
-        def maybe_flip_label(example, idx):
-            if idx not in noise_indices:
-                example["choice"] = abs(example["choice"] - 1)
+        def flip_label(example, idx):
+            if idx in noise_indices:
+                example["choice"] = 1 - example["choice"]
             return example
 
-        return dataset.map(maybe_flip_label, with_indices=True)
+        return dataset.map(flip_label, with_indices=True)
 
     @classmethod
     def add_noise(
@@ -50,6 +51,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         cls,
         examples: dict[str, Any],
         tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
+        max_length: int = 128
     ) -> dict[str, Any]:
         new_examples = {
             "input_ids_chosen": [],
@@ -60,10 +62,10 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
 
         for summary, choice in zip(examples["summaries"], examples["choice"]):
             chosen = summary[choice]["text"]
-            rejected = summary[abs(choice - 1)]["text"]
+            rejected = summary[1 - choice]["text"]
 
-            tokenized_chosen = tokenizer(chosen)
-            tokenized_rejected = tokenizer(rejected)
+            tokenized_chosen = tokenizer(chosen, truncation=True)
+            tokenized_rejected = tokenizer(rejected, truncation=True)
 
             new_examples["input_ids_chosen"].append(tokenized_chosen["input_ids"])
             new_examples["attention_mask_chosen"].append(
@@ -80,11 +82,12 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
     @classmethod
     def from_config(
         cls,
-        cfg: DatasetConfig,
+        cfg: DatasetConfig
     ) -> datasets.DatasetDict:
         dataset_dict = datasets.load_dataset(cls.DATASET_URL, "comparisons")
         assert isinstance(dataset_dict, datasets.DatasetDict)
 
+        dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
         processed_train = cls.add_noise(dataset_dict["train"], cfg)
         processed_validation = cls.add_noise(dataset_dict["validation"], cfg)
 
@@ -93,10 +96,14 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             tokenizer = AutoTokenizer.from_pretrained(
                 cfg.preprocess_tokenizer, use_fast=True
             )
+            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+            
             processed_train = processed_train.map(
                 functools.partial(
                     cls.preprocess_batch_for_reward_trainer,
                     tokenizer=tokenizer,
+                    max_length=cfg.max_token_length
                 ),
                 batched=True,
                 num_proc=4,
@@ -105,10 +112,20 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 functools.partial(
                     cls.preprocess_batch_for_reward_trainer,
                     tokenizer=tokenizer,
+                    max_length=cfg.max_token_length
                 ),
                 batched=True,
                 num_proc=4,
             )
+            
+            processed_train = processed_train.filter(
+                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length and len(x["input_ids_rejected"]) <= cfg.max_token_length
+            )
+            processed_validation = processed_validation.filter(
+                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length and len(x["input_ids_rejected"]) <= cfg.max_token_length
+            )
+            
+            
 
         return datasets.DatasetDict(
             {
