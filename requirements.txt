@@ -22,6 +22,7 @@ multiprocess==0.70.16
 numpy==1.26.4
 packaging==24.0
 pandas==2.2.2
+peft==0.11.1
 pillow==10.3.0
 platformdirs==4.2.2
 protobuf==4.25.3
@@ -40,6 +41,8 @@ torch==1.13.1+cu117
 torchaudio==0.13.1+cu117
 torchvision==0.14.1+cu117
 tqdm==4.66.4
+transformers==4.41.2
+trl==0.9.4
 typing_extensions==4.12.1
 tzdata==2024.1
 urllib3==2.2.1
