@@ -84,7 +84,7 @@ if __name__ == "__main__":
         learning_rate= reward_config.learning_rate,
         per_device_train_batch_size= reward_config.per_device_train_batch_size,
         per_device_eval_batch_size= reward_config.per_device_eval_batch_size,
-        half_precision_backend=True,
+        half_precision_backend="auto",
         fp16=True,
         max_length=reward_config.max_length,
         adam_beta1=reward_config.adam_beta1, adam_beta2=reward_config.adam_beta2,
