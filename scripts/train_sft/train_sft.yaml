@@ -1,0 +1,4 @@
+project_name : 'Noisy-LM'
+exp_name     : 'train_sft'
+output_dir   : '/media/sdebsarkar/extra-hdd/CSNLP'
+
