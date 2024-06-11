@@ -31,7 +31,7 @@ from trl import (
     get_quantization_config,
 )
 
-from src.all_datasets import DatasetConfig
+from configs import DatasetConfig
 
 if __name__ == "__main__":
     parser = HfArgumentParser((RewardConfig, ModelConfig, DatasetConfig))  # type: ignore[reportArgumentType]

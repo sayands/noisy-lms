@@ -9,6 +9,7 @@ from transformers import (
     Trainer,
     TrainingArguments,
     default_data_collator,
+    HfArgumentParser
 )
 import evaluate
 
@@ -19,7 +20,8 @@ sys.path.append(workspace_dir)
 sys.path.append(src_dir)
 
 from src.datasets import tldr
-from config import config, update_config
+from configs import TrainingConfig
+from utils import common
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Add Noise To dataset')
@@ -28,8 +30,11 @@ def parse_args():
     return parser.parse_known_args()
 
 if __name__ == '__main__':
-    args, _ = parse_args()
-    cfg = update_config(config, args.config)
+    parser = HfArgumentParser((TrainingConfig))  # type: ignore[reportArgumentType]
+    train_config = parser.parse_args_into_dataclasses()[0]
+    
+    train_config.output_dir = osp.join(train_config.output_dir, train_config.exp_name)
+    common.ensure_dir(train_config.output_dir)
     
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
     model = AutoModelForCausalLM.from_pretrained("gpt2", use_cache=False)
@@ -39,9 +44,9 @@ if __name__ == '__main__':
     model.config.end_token_id = tokenizer.eos_token_id
     model.config.pad_token_id = model.config.eos_token_id
     
-    data_path = "CarperAI/openai_summarize_tldr" 
-    train_dataset = tldr.TLDRDataset(data_path, tokenizer, "train", max_length=cfg.sft.max_len)    
-    eval_dataset = tldr.TLDRDataset(data_path, tokenizer, "valid", max_length=cfg.sft.max_len)
+    data_path = train_config.dataset_name
+    train_dataset = tldr.TLDRDataset(data_path, tokenizer, "train", max_length=train_config.max_input_length)    
+    eval_dataset = tldr.TLDRDataset(data_path, tokenizer, "valid", max_length=train_config.max_input_length)
     
     rouge = evaluate.load("rouge")
     
@@ -60,24 +65,24 @@ if __name__ == '__main__':
         return logits.argmax(dim=-1)
     
     training_args = TrainingArguments(
-        output_dir=cfg.output_dir,
+        output_dir=train_config.output_dir,
         overwrite_output_dir = True,
         eval_strategy="steps",
         eval_accumulation_steps=1,
-        learning_rate= cfg.train.learning_rate,
-        per_device_train_batch_size= cfg.train.batch_size,
-        per_device_eval_batch_size= cfg.eval.batch_size,
+        learning_rate= train_config.learning_rate,
+        per_device_train_batch_size= train_config.train_batch_size,
+        per_device_eval_batch_size= train_config.eval_batch_size,
         half_precision_backend=True,
         fp16=True,
         adam_beta1=0.9, adam_beta2=0.95,
-        gradient_accumulation_steps= cfg.train.grad_acc_steps,
-        num_train_epochs=cfg.train.max_epoch,
+        gradient_accumulation_steps= train_config.grad_acc_steps,
+        num_train_epochs=train_config.max_epoch,
         warmup_steps=100,
-        eval_steps=cfg.train.eval_steps,
-        save_steps=cfg.train.save_steps,
+        eval_steps=train_config.eval_steps,
+        save_steps=train_config.save_steps,
         load_best_model_at_end=True,
-        logging_steps=cfg.train.logging_steps,
-        run_name = cfg.exp_name)
+        logging_steps=train_config.logging_steps,
+        run_name = train_config.exp_name)
     
     trainer = Trainer(
         model=model,args=training_args, train_dataset=train_dataset, 
@@ -85,7 +90,7 @@ if __name__ == '__main__':
         data_collator=default_data_collator, preprocess_logits_for_metrics=preprocess_logits_for_metrics)
         
     trainer.train()
-    trainer.save_model(cfg.output_dir)
+    trainer.save_model(train_config.output_dir) # "CarperAI/openai_summarize_tldr" 
     
     
     
