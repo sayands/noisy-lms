@@ -104,7 +104,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         dataset_dict = datasets.load_dataset(cls.DATASET_URL, "comparisons")
         assert isinstance(dataset_dict, datasets.DatasetDict)
 
-        dataset_dict["train"] = dataset_dict["train"].select(range(2000))
+        dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
         processed_train = cls.add_noise(dataset_dict["train"], cfg)
         processed_validation = cls.add_noise(dataset_dict["validation"], cfg)
 
