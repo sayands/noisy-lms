@@ -9,7 +9,7 @@ python $NOISY_LM_DIR/src/trainers/reward_model_trainer.py \
     --max_length 128 \
     --dataset_name openai/summarize_from_feedback \
     --dataset_noise_type flip_labels \
-    --dataset_noise_level 0.10 \
+    --dataset_noise_level 0.20 \
     --dataset_noise_seed 42 \
     --preprocess_for_reward_trainer \
     --preprocess_tokenizer gpt2 \
