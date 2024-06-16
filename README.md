@@ -23,20 +23,4 @@ pip install -r requirements.txt
 ```
 
 ### Usage
-OpenAI Human Feedback Data download using [Huggingface](https://huggingface.co/datasets/openai/summarize_from_feedback):
-
-- Change `data:root_dir` in `scripts/download/download.yaml`
-```bash
-bash scripts/download/download_hf.sh
-```
-
-Flip labels using:
-- Change `data:root_dir` in `scripts/preprocess/add_noise.yaml`
-- Change `preprocess:noise_level` in `scripts/preprocess/add_noise.yaml` (Remember noise level is in percentage of the no.of samples in `train` data split!)
-```bash
-bash scripts/preprocess/add_noise_hf.sh
-```
-
-### Notes
-
-- From original OpenAI [repo](https://github.com/openai/summarize-from-feedback), posts / articles marked with ``valid1`` were used to select models during training, so we restricted to ``valid2`` labels for final evaluations. We should follow the same, hence, label flipping only on ``train``, not on any of the ``valid``.
+Follow the ``scripts/``.
