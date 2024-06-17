@@ -2,7 +2,7 @@ import os
 import os.path as osp
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoTokenizer
 from trl.trainer.ppov2_config import PPOv2Config
 from trl.trainer.ppov2_trainer import PPOv2Trainer
 from trl import (
@@ -57,14 +57,16 @@ if __name__ == "__main__":
         quantization_config=quantization_config,
     )
 
-    reward_model = AutoModelForCausalLM.from_pretrained(
+    reward_model = AutoModelForSequenceClassification.from_pretrained(
         train_config.reward_model_path,
         num_labels=1,
+        **model_kwargs
     )
 
-    value_model = AutoModelForCausalLM.from_pretrained(
+    value_model = AutoModelForSequenceClassification.from_pretrained(
         train_config.reward_model_path,
         num_labels=1,
+        **model_kwargs
     )
     
     model = AutoModelForCausalLM.from_pretrained(
@@ -117,6 +119,7 @@ if __name__ == "__main__":
         logging_steps=train_config.logging_steps,
         remove_unused_columns=False,
         run_name=train_config.run_name,
+        report_to="tensorboard",
     )
 
     trainer = PPOv2Trainer(
@@ -131,3 +134,5 @@ if __name__ == "__main__":
     )
     trainer.train()
     trainer.save_model(training_args.output_dir)
+
+    trainer.state.log_history()
