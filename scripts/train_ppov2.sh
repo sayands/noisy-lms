@@ -4,8 +4,8 @@ export WANDB_LOG_MODEL="checkpoint"
 
 python $NOISY_LM_DIR/src/trainers/ppov2_trainer.py \
     --output_dir /media/sdebsarkar/extra-hdd/CSNLP \
-    --run_name train_dpo \
-    --reward_model_path FILL_RM \
+    --run_name train_ppov2 \
+    --reward_model_path /media/sdebsarkar/extra-hdd/CSNLP/train_rm_gpt2_00/checkpoint-29000 \
     --model_name_or_path /media/sdebsarkar/extra-hdd/CSNLP/train_sft_gpt2/checkpoint-36000 \
     --tokenizer_path /media/sdebsarkar/extra-hdd/CSNLP/train_rm_gpt2_00 \
     --max_length 128 \
