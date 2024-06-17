@@ -50,6 +50,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
     def preprocess_batch_for_dpo(
         cls,
         examples: dict[str, Any],
+        tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
     ) -> datasets.Dataset:
         new_examples = { "prompt" : [], "chosen" :  [], "rejected" : []}
         
@@ -58,9 +59,35 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             chosen = summary[choice]["text"]
             rejected = summary[1 - choice]["text"]
             
+            chosen = [{ "content" : prompt, "role" : "user"}, { "content" : chosen, "role" : "assistant"}]
+            rejected = [{ "content" : prompt, "role" : "user"}, { "content" : rejected, "role" : "assistant"}]
+
+            chosen = tokenizer.apply_chat_template(chosen, tokenize=False)
+            rejected = tokenizer.apply_chat_template(rejected, tokenize=False)
+
             new_examples["prompt"].append(prompt)
             new_examples["chosen"].append(chosen)
             new_examples["rejected"].append(rejected)
+        return new_examples
+    
+    @classmethod
+    def preprocess_batch_for_ppo(
+        cls,
+        examples: dict[str, Any],
+        tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
+    ) -> datasets.Dataset:
+        new_examples = { "input_ids" : [], "lengths" :  []}
+        
+        for info in examples["info"]:
+            chat_template_dict = [{ "content" : info["post"], "role" : "user"}]
+            input_ids = tokenizer.apply_chat_template(
+                chat_template_dict,
+                padding=False,
+                add_generation_prompt=True,
+            )
+            new_examples["input_ids"].append(input_ids)
+            new_examples["lengths"].append(len(input_ids))
+
         return new_examples
     
     @classmethod
@@ -120,7 +147,8 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 functools.partial(
                     cls.preprocess_batch_for_reward_trainer,
                     tokenizer=tokenizer,
-                    max_length=cfg.max_token_length
+                    max_length=cfg.max_token_length,
+                    
                 ),
                 batched=True,
                 num_proc=4,
@@ -129,7 +157,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 functools.partial(
                     cls.preprocess_batch_for_reward_trainer,
                     tokenizer=tokenizer,
-                    max_length=cfg.max_token_length
+                    max_length=cfg.max_token_length,
                 ),
                 batched=True,
                 num_proc=4,
@@ -143,9 +171,11 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             )
             
         elif cfg.preprocess_for_dpo:
+            tokenizer = cfg.preprocess_dpo_tokenizer
             processed_train = processed_train.map(
                 functools.partial(
                     cls.preprocess_batch_for_dpo,
+                    tokenizer=tokenizer,
                 ),
                 batched=True,
                 num_proc=4,
@@ -153,10 +183,35 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             processed_validation = processed_validation.map(
                 functools.partial(
                     cls.preprocess_batch_for_dpo,
+                    tokenizer=tokenizer,
                 ),
                 batched=True,
                 num_proc=4,
             )
+        elif cfg.preprocess_for_ppo:
+            tokenizer = cfg.preprocess_ppo_tokenizer
+            processed_train = processed_train.map(
+                functools.partial(
+                    cls.preprocess_batch_for_ppo,
+                    tokenizer=tokenizer,
+                ),
+                remove_columns=processed_train.column_names,
+                batched=True,
+                num_proc=4,
+            )
+            processed_validation = processed_validation.map(
+                functools.partial(
+                    cls.preprocess_batch_for_ppo,
+                    tokenizer=tokenizer,
+                ),
+                remove_columns=processed_validation.column_names,
+                batched=True,
+                num_proc=4,
+            )
+
+            processed_train = processed_train.filter(lambda x: x["lengths"] <= cfg.max_token_length)
+            processed_validation = processed_validation.filter(lambda x: x["lengths"] <= cfg.max_token_length)
+
         else:
             raise NotImplementedError
 

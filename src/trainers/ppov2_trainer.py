@@ -12,6 +12,7 @@ from trl import (
     get_quantization_config,
 )
 from trl.commands.cli_utils import TrlParser
+from trl.trainer.utils import SIMPLE_QUERY_CHAT_TEMPLATE
 
 import sys
 
@@ -73,12 +74,20 @@ if __name__ == "__main__":
     model_ref = AutoModelForCausalLM.from_pretrained(
         model_config.model_name_or_path, **model_kwargs
     )
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_config.tokenizer_path)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_config.tokenizer_path, padding_side="left", trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    
+    tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+    if tokenizer.chat_template is None:
+        tokenizer.chat_template = SIMPLE_QUERY_CHAT_TEMPLATE
+
+
     model.config.end_token_id = tokenizer.eos_token_id
     model.config.pad_token_id = model.config.eos_token_id
     dataset_config.max_token_length = 128 #train_config.max_length
+    dataset_config.preprocess_ppo_tokenizer = tokenizer
 
     dataset = make_dataset(dataset_config)
     train_dataset = dataset["train"]

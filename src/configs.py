@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Protocol, Union
 
+from transformers import AutoTokenizer
+
 @dataclass
 class DatasetConfig:
     dataset_name: str
@@ -9,7 +11,10 @@ class DatasetConfig:
     dataset_noise_seed: int = 42
     preprocess_for_reward_trainer: bool = False
     preprocess_for_dpo: bool = False
+    preprocess_for_ppo: bool = False
     preprocess_tokenizer: Union[str, None] = None
+    preprocess_ppo_tokenizer: AutoTokenizer = None
+    preprocess_dpo_tokenizer: AutoTokenizer = None
     max_token_length: int = 128
 
 @dataclass

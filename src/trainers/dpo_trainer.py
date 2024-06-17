@@ -56,12 +56,16 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_config.tokenizer_path)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.pad_token_id = tokenizer.eos_token_id
+    if tokenizer.chat_template is None:
+        tokenizer.chat_template = "{% for message in messages %}{{message['role'] + ': ' + message['content'] + '\n\n'}}{% endfor %}{{ eos_token }}"
+
     model.config.end_token_id = tokenizer.eos_token_id
     model.config.pad_token_id = model.config.eos_token_id
     
     model_ref = AutoModelForCausalLM.from_pretrained(model_config.model_name_or_path, **model_kwargs)
     
     dataset_config.max_token_length = train_config.max_length
+    dataset_config.preprocess_dpo_tokenizer = tokenizer
     dataset = make_dataset(dataset_config)
     train_dataset = dataset["train"]
     eval_dataset = dataset["validation"]
