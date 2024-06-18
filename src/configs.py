@@ -12,9 +12,11 @@ class DatasetConfig:
     preprocess_for_reward_trainer: bool = False
     preprocess_for_dpo: bool = False
     preprocess_for_ppo: bool = False
+    preprocess_for_kto: bool = False
     preprocess_tokenizer: Union[str, None] = None
     preprocess_ppo_tokenizer: AutoTokenizer = None
     preprocess_dpo_tokenizer: AutoTokenizer = None
+    preprocess_kto_tokenizer: AutoTokenizer = None
     max_token_length: int = 128
 
 @dataclass

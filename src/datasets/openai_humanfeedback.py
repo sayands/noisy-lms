@@ -51,7 +51,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         cls,
         examples: dict[str, Any],
         tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
-    ) -> datasets.Dataset:
+    ) -> dict[str, Any]:
         new_examples = { "prompt" : [], "chosen" :  [], "rejected" : []}
         
         for info, summary, choice in zip(examples["info"], examples["summaries"], examples["choice"]):
@@ -75,7 +75,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         cls,
         examples: dict[str, Any],
         tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
-    ) -> datasets.Dataset:
+    ) -> dict[str, Any]:
         new_examples = { "input_ids" : [], "lengths" :  []}
         
         for info in examples["info"]:
@@ -90,6 +90,36 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
 
         return new_examples
     
+    @classmethod
+    def preprocess_batch_for_kto(
+        cls,
+        examples: dict[str, Any],
+        tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
+    ) -> dict[str, Any]:
+        new_examples = { "prompt" : [], "completion" :  [], "label" : []}
+        
+        for info, summary, choice in zip(examples["info"], examples["summaries"], examples["choice"]):
+            prompt = info["post"]
+            chosen = summary[choice]["text"]
+            rejected = summary[1 - choice]["text"]
+            
+            chosen = [{ "content" : chosen, "role" : "assistant"}]
+            rejected = [{ "content" : rejected, "role" : "assistant"}]
+
+            chosen = tokenizer.apply_chat_template(chosen, tokenize=False)
+            rejected = tokenizer.apply_chat_template(rejected, tokenize=False)
+            prompt = tokenizer.apply_chat_template([{ "content" : prompt, "role" : "user"}], tokenize=False)
+
+            new_examples["prompt"].append(prompt)
+            new_examples["completion"].append(chosen)
+            new_examples["label"].append(True)
+
+            new_examples["prompt"].append(prompt)
+            new_examples["completion"].append(rejected)
+            new_examples["label"].append(False)
+
+        return new_examples
+
     @classmethod
     def preprocess_batch_for_reward_trainer(
         cls,
@@ -211,6 +241,27 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
 
             processed_train = processed_train.filter(lambda x: x["lengths"] <= cfg.max_token_length)
             processed_validation = processed_validation.filter(lambda x: x["lengths"] <= cfg.max_token_length)
+
+        elif cfg.preprocess_for_kto:
+            tokenizer = cfg.preprocess_kto_tokenizer
+            processed_train = processed_train.map(
+                functools.partial(
+                    cls.preprocess_batch_for_kto,
+                    tokenizer=tokenizer,
+                ),
+                remove_columns=processed_train.column_names,
+                batched=True,
+                num_proc=4,
+            )
+            processed_validation = processed_validation.map(
+                functools.partial(
+                    cls.preprocess_batch_for_kto,
+                    tokenizer=tokenizer,
+                ),
+                remove_columns=processed_validation.column_names,
+                batched=True,
+                num_proc=4,
+            )
 
         else:
             raise NotImplementedError
