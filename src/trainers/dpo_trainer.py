@@ -20,7 +20,7 @@ sys.path.append(workspace_dir)
 sys.path.append(src_dir)
 
 from src.configs import DatasetConfig, TokenizerConfig
-from src.datasets import make_dataset
+from src.datasets_process import make_dataset
 from src.utils import common
 
 if __name__ == "__main__":
