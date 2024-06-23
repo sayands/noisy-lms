@@ -88,6 +88,7 @@ if TRL_USE_RICH:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(filename='dpo_trl.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     parser = TrlParser((DPOScriptArguments, DPOConfig, ModelConfig))
     args, training_args, model_config = parser.parse_args_and_config()
 
@@ -159,6 +160,10 @@ if __name__ == "__main__":
         num_proc=multiprocessing.cpu_count(),
         load_from_cache_file=False,
     )
+    keys = ds.keys()
+    logging.info(keys)
+    for key, value in ds.items():
+        logging.info(f"{key}, len: {len(value)}\nvalues:{value}\n")
     train_dataset = ds[args.dataset_train_split]
     eval_dataset = ds[args.dataset_test_split]
 
