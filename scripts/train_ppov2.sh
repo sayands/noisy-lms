@@ -13,7 +13,7 @@ python $NOISY_LM_DIR/src/trainers/ppov2_trainer.py \
     --dataset_noise_type flip_labels \
     --dataset_noise_level 0.01 \
     --dataset_noise_seed 42 \
-    --preprocess_for_dpo \
+    --preprocess_for_ppo \
     --learning_rate 1e-05 \
     --adam_beta1 0.9 \
     --adam_beta2 0.95 \
