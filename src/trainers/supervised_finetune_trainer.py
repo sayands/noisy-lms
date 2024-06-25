@@ -20,7 +20,7 @@ src_dir = osp.join(workspace_dir, 'src')
 sys.path.append(workspace_dir)
 sys.path.append(src_dir)
 
-from src.datasets import tldr
+from src.datasets_process import tldr
 from configs import DatasetConfig
 from utils import common
 

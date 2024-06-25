@@ -20,10 +20,13 @@ sys.path.append(workspace_dir)
 sys.path.append(src_dir)
 
 from src.configs import DatasetConfig, TokenizerConfig
-from src.datasets import make_dataset
+from src.datasets_process import make_dataset
 from src.utils import common
 
+import logging
+
 if __name__ == "__main__":
+    logging.basicConfig(filename='dpo_trainer.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     parser = TrlParser((DPOConfig, TokenizerConfig, ModelConfig, DatasetConfig))
     train_config, tokenizer_config, model_config, dataset_config = parser.parse_args_and_config()
     
@@ -67,6 +70,10 @@ if __name__ == "__main__":
     dataset_config.max_token_length = train_config.max_length
     dataset_config.preprocess_dpo_tokenizer = tokenizer
     dataset = make_dataset(dataset_config)
+    keys = dataset.keys()
+    logging.info(keys)
+    for key, value in dataset.items():
+        logging.info(f"{key}, len: {len(value)}\nvalues:{value}\n")
     train_dataset = dataset["train"]
     eval_dataset = dataset["validation"]
     

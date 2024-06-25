@@ -152,6 +152,73 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             )
 
         return new_examples
+    
+    @classmethod
+    def dpo_build(
+        cls,
+        dataset_name: str,
+        tokenizer,
+        dataset_noise_level,
+        dataset_noise_seed
+    ) -> datasets.DatasetDict:
+        dataset_dict = datasets.load_dataset(dataset_name, "comparisons")
+        assert isinstance(dataset_dict, datasets.DatasetDict)
+
+        def flip_label(example, idx):
+            if idx in noise_indices:
+                example["choice"] = 1 - example["choice"]
+            return example
+
+        def preprocess_batch_for_dpo(
+                examples: dict[str, Any],
+            ) -> dict[str, Any]:
+            new_examples = { "prompt" : [], "chosen" :  [], "rejected" : []}
+        
+            for info, summary, choice in zip(examples["info"], examples["summaries"], examples["choice"]):
+                prompt = info["post"]
+                chosen = summary[choice]["text"]
+                rejected = summary[1 - choice]["text"]
+                
+                chosen = [{ "content" : prompt, "role" : "user"}, { "content" : chosen, "role" : "assistant"}]
+                rejected = [{ "content" : prompt, "role" : "user"}, { "content" : rejected, "role" : "assistant"}]
+
+                chosen = tokenizer.apply_chat_template(chosen, tokenize=False)
+                rejected = tokenizer.apply_chat_template(rejected, tokenize=False)
+
+                new_examples["prompt"].append(prompt)
+                new_examples["chosen"].append(chosen)
+                new_examples["rejected"].append(rejected)
+            return new_examples
+
+        #adding noise to dataset train split
+        processed_train = dataset_dict["train"]
+        num_samples_to_add_noise = int(dataset_noise_level * len(processed_train))
+        np.random.seed(dataset_noise_seed)
+        noise_indices = np.random.choice(len(processed_train), num_samples_to_add_noise, replace=False)
+        processed_train = processed_train.map(flip_label, with_indices=True)
+        
+        #selecting 2000 samples from validation split
+        dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
+        processed_validation = dataset_dict["validation"]
+
+        processed_train = processed_train.map(
+            preprocess_batch_for_dpo,
+            batched=True,
+            num_proc=4,
+            )
+        processed_validation = processed_validation.map(
+            preprocess_batch_for_dpo,
+            batched=True,
+            num_proc=4,
+            )
+        
+        return datasets.DatasetDict(
+            {
+                "train": processed_train,
+                "validation": processed_validation,
+            }
+        )
+
 
     @classmethod
     def from_config(

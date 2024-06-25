@@ -14,88 +14,64 @@
 # limitations under the License.
 """
 # regular:
-python examples/scripts/dpo.py \
-    --dataset_name=trl-internal-testing/hh-rlhf-helpful-base-trl-style \
-    --model_name_or_path=gpt2 \
-    --per_device_train_batch_size 4 \
+python $NOISY_LM_DIR/src/trainers/dpo_trainer_2.py \
+    --dataset_name openai/summarize_from_feedback \
+    --model_name_or_path gpt2 \
+    --dataset_noise_level 0.05 \
+    --dataset_noise_seed 42 \
+    --per_device_train_batch_size 2 \
+    --per_device_eval_batch_size 2 \
     --learning_rate 1e-3 \
     --gradient_accumulation_steps 1 \
-    --logging_steps 10 \
+    --logging_steps 50 \
+    --eval_strategy steps \
     --eval_steps 500 \
-    --output_dir="dpo_anthropic_hh" \
     --warmup_steps 150 \
     --report_to wandb \
-    --bf16 \
-    --logging_first_step \
-    --no_remove_unused_columns
-    --output_dir /scratch/users/sdsarkar/CSNLP \
-    --run_name dpo_trl \
-
-# peft:
-python examples/scripts/dpo.py \
-    --dataset_name=trl-internal-testing/hh-rlhf-helpful-base-trl-style \
-    --model_name_or_path=gpt2 \
-    --per_device_train_batch_size 4 \
-    --learning_rate 1e-3 \
-    --gradient_accumulation_steps 1 \
-    --logging_steps 10 \
-    --eval_steps 500 \
-    --output_dir="dpo_anthropic_hh" \
-    --optim rmsprop \
-    --warmup_steps 150 \
-    --report_to wandb \
-    --bf16 \
     --logging_first_step \
     --no_remove_unused_columns \
-    --use_peft \
-    --lora_r=16 \
-    --lora_alpha=16
+    --output_dir /home/anghosh/PROJECT/output \
+    --run_name dpo_trainer_wnoise \
 """
 
 import logging
-import multiprocessing
 import os
-from contextlib import nullcontext
 
-TRL_USE_RICH = os.environ.get("TRL_USE_RICH", False)
-
-from trl.commands.cli_utils import DPOScriptArguments, init_zero_verbose, TrlParser
-
-if TRL_USE_RICH:
-    init_zero_verbose()
-    FORMAT = "%(message)s"
-
-    from rich.console import Console
-    from rich.logging import RichHandler
+from trl.commands.cli_utils import DPOScriptArguments, TrlParser
 
 import torch
-from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from trl import (
     DPOConfig,
     DPOTrainer,
     ModelConfig,
-    RichProgressCallback,
     get_kbit_device_map,
     get_peft_config,
     get_quantization_config,
 )
 
+import sys
+import os
+import os.path as osp
+workspace_dir = os.environ['NOISY_LM_DIR']
+src_dir = osp.join(workspace_dir, 'src')
+sys.path.append(workspace_dir)
+sys.path.append(src_dir)
 
-if TRL_USE_RICH:
-    logging.basicConfig(format=FORMAT, datefmt="[%X]", handlers=[RichHandler()], level=logging.INFO)
+from src.configs import DatasetConfig, TokenizerConfig
+from src.datasets_process import build_dataset
 
 
 if __name__ == "__main__":
     logging.basicConfig(filename='dpo_trl.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    parser = TrlParser((DPOScriptArguments, DPOConfig, ModelConfig))
-    args, training_args, model_config = parser.parse_args_and_config()
-
-    # Force use our print callback
-    if TRL_USE_RICH:
-        training_args.disable_tqdm = True
-        console = Console()
+    parser = TrlParser((DPOScriptArguments, DPOConfig, ModelConfig, DatasetConfig))
+    logging.info("START\n")
+    # print("parser\n", dir(parser), "\n", vars(parser))
+    args, training_args, model_config, dataset_config = parser.parse_args_and_config()
+    # print("args", dir(args), "\n", vars(args))
+    # print("training_args", dir(training_args), "\n", vars(training_args))
+    # print("model_config", dir(model_config), "\n", vars(model_config))
 
     ################
     # Model & Tokenizer
@@ -132,46 +108,31 @@ if __name__ == "__main__":
             name for name, buffer in model.named_buffers() if buffer.dtype == torch.bool
         ]
 
-    ################
-    # Optional rich context managers
-    ###############
-    init_context = nullcontext() if not TRL_USE_RICH else console.status("[bold green]Initializing the DPOTrainer...")
-    save_context = (
-        nullcontext()
-        if not TRL_USE_RICH
-        else console.status(f"[bold green]Training completed! Saving the model to {training_args.output_dir}")
-    )
 
     ################
     # Dataset
     ################
-    ds = load_dataset(args.dataset_name)
-    if args.sanity_check:
-        for key in ds:
-            ds[key] = ds[key].select(range(50))
+    dataset = build_dataset('DPO', args.dataset_name, tokenizer, dataset_config.dataset_noise_level, dataset_config.dataset_noise_seed)
+    dataset = dataset.select_columns(['prompt', 'chosen', 'rejected'])
 
-    def process(row):
-        row["chosen"] = tokenizer.apply_chat_template(row["chosen"], tokenize=False)
-        row["rejected"] = tokenizer.apply_chat_template(row["rejected"], tokenize=False)
-        return row
-
-    ds = ds.map(
-        process,
-        num_proc=multiprocessing.cpu_count(),
-        load_from_cache_file=False,
-    )
-    keys = ds.keys()
+    #logging statements for sanity check
+    keys = dataset["train"]
     logging.info(keys)
-    for key, value in ds.items():
-        logging.info(f"{key}, len: {len(value)}\nvalues:{value}\n")
-    train_dataset = ds[args.dataset_train_split]
-    eval_dataset = ds[args.dataset_test_split]
+    logging.info(keys['prompt'][1])
+    logging.info(keys['chosen'][1])
+    logging.info(keys['rejected'][1])
+    train_dataset = dataset["train"]
+    eval_dataset = dataset["validation"]
+    logging.info(train_dataset)
+    logging.info(train_dataset['prompt'][1])
+    logging.info(train_dataset['chosen'][1])
+    logging.info(train_dataset['rejected'][1])
 
     ################
     # Training
     ################
-    with init_context:
-        trainer = DPOTrainer(
+
+    trainer = DPOTrainer(
             model,
             model_ref,
             args=training_args,
@@ -179,10 +140,7 @@ if __name__ == "__main__":
             eval_dataset=eval_dataset,
             tokenizer=tokenizer,
             peft_config=get_peft_config(model_config),
-            callbacks=[RichProgressCallback] if TRL_USE_RICH else None,
-        )
+    )
 
     trainer.train()
-
-    with save_context:
-        trainer.save_model(training_args.output_dir)
+    trainer.save_model(training_args.output_dir)
