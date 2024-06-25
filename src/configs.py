@@ -5,7 +5,7 @@ from transformers import AutoTokenizer
 
 @dataclass
 class DatasetConfig:
-    dataset_name: str
+    dataset_path: str = ""
     dataset_noise_type: str = "flip_labels"
     dataset_noise_level: float = 0.0
     dataset_noise_seed: int = 42
