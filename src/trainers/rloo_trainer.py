@@ -36,8 +36,8 @@ if __name__ == "__main__":
         dataset_noise_level_name[1]
     )
 
-    train_config.run_name = train_config.run_name + "_" + dataset_noise_level_name
-    train_config.output_dir = osp.join(train_config.output_dir, train_config.run_name)
+    train_config.exp_name = train_config.run_name + "_" + dataset_noise_level_name # HF API issue
+    train_config.output_dir = osp.join(train_config.output_dir, train_config.exp_name)
 
     common.ensure_dir(train_config.output_dir)
 

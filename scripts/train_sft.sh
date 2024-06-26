@@ -3,7 +3,7 @@ export WANDB_PROJECT="noisy-lms"
 export WANDB_LOG_MODEL="checkpoint"
 
 python $NOISY_LM_DIR/src/trainers/supervised_finetune_trainer.py \
-        --dataset_name "CarperAI/openai_summarize_tldr" \
+        --dataset_path "CarperAI/openai_summarize_tldr" \
         --output_dir /media/sdebsarkar/extra-hdd/CSNLP \
         --run_name train_sft_gpt2 \
         --max_length 128 \

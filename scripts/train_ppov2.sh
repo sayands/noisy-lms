@@ -9,7 +9,7 @@ python $NOISY_LM_DIR/src/trainers/ppov2_trainer.py \
     --model_name_or_path /media/sdebsarkar/extra-hdd/CSNLP/train_sft_gpt2/checkpoint-36000 \
     --tokenizer_path /media/sdebsarkar/extra-hdd/CSNLP/train_rm_gpt2_00 \
     --max_length 128 \
-    --dataset_name openai/summarize_from_feedback \
+    --dataset_path openai/summarize_from_feedback \
     --dataset_noise_type flip_labels \
     --dataset_noise_level 0.01 \
     --dataset_noise_seed 42 \

@@ -1,7 +1,7 @@
 """
 # regular:
 python $NOISY_LM_DIR/src/trainers/dpo_trainer.py \
-    --dataset_name openai/summarize_from_feedback \
+    --dataset_path openai/summarize_from_feedback \
     --model_name_or_path gpt2 \
     --dataset_noise_level 0.05 \
     --dataset_noise_seed 42 \
@@ -96,7 +96,7 @@ if __name__ == "__main__":
         ]
 
     # Dataset
-    dataset = build_dataset('DPO', args.dataset_name, tokenizer, dataset_config.dataset_noise_level, dataset_config.dataset_noise_seed)
+    dataset = build_dataset('DPO', dataset_config.dataset_path, tokenizer, dataset_config.dataset_noise_level, dataset_config.dataset_noise_seed)
     dataset = dataset.select_columns(['prompt', 'chosen', 'rejected'])
 
     train_dataset = dataset["train"]

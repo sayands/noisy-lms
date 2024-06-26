@@ -172,9 +172,9 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
 
     @classmethod
     def dpo_build(
-        cls, dataset_name: str, tokenizer, dataset_noise_level, dataset_noise_seed
+        cls, dataset_path: str, tokenizer, dataset_noise_level, dataset_noise_seed
     ) -> datasets.DatasetDict:
-        dataset_dict = datasets.load_dataset(dataset_name, "comparisons")
+        dataset_dict = datasets.load_dataset(dataset_path, "comparisons")
         assert isinstance(dataset_dict, datasets.DatasetDict)
 
         def flip_label(example, idx):
@@ -248,7 +248,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
 
         dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
         processed_train = cls.add_noise(dataset_dict["train"], cfg)
-        processed_validation = cls.add_noise(dataset_dict["validation"], cfg)
+        processed_validation = dataset_dict["validation"]
 
         if cfg.preprocess_for_reward_trainer:
             assert cfg.preprocess_tokenizer

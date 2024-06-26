@@ -39,7 +39,7 @@ if __name__ == '__main__':
     model.config.end_token_id = tokenizer.eos_token_id
     model.config.pad_token_id = model.config.eos_token_id
     
-    data_path = dataset_config.dataset_name
+    data_path = dataset_config.dataset_path
     train_dataset = tldr.TLDRDataset(data_path, tokenizer, "train", max_length=reward_config.max_length)    
     eval_dataset = tldr.TLDRDataset(data_path, tokenizer, "valid", max_length=reward_config.max_length)
     

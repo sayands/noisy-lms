@@ -1,19 +1,23 @@
-export NOISY_LM_DIR=$(pwd)
 export WANDB_PROJECT="noisy-lms"
-export WANDB_LOG_MODEL="checkpoint"
+export NOISY_LM_DIR=/home/users/sdsarkar/code/CSNLP/noisy-lms
 
+export HF_HOME=/scratch/users/sdsarkar/hf_cache/
+export HF_DATASETS_CACHE=/scratch/users/sdsarkar/hf_cache/datasets
+
+cd $NOISY_LM_DIR
 python $NOISY_LM_DIR/src/trainers/reward_model_trainer.py \
-    --output_dir /media/sdebsarkar/extra-hdd/CSNLP \
-    --run_name train_rm_deberta \
-    --model_name_or_path OpenAssistant/reward-model-deberta-v3-large-v2 \
+    --output_dir /scratch/users/sdsarkar/CSNLP \
+    --report_to wandb \
+    --run_name train_rm \
+    --model_name_or_path gpt2 \
     --max_length 128 \
-    --dataset_name openai/summarize_from_feedback \
+    --dataset_path openai/summarize_from_feedback \
     --dataset_noise_type flip_labels \
-    --dataset_noise_level 0.20 \
+    --dataset_noise_level 0.0 \
     --dataset_noise_seed 42 \
     --preprocess_for_reward_trainer \
     --preprocess_tokenizer gpt2 \
-    --learning_rate 1e-05 \
+    --learning_rate 1e-3 \
     --adam_beta1 0.9 \
     --adam_beta2 0.95 \
     --warmup_steps 100 \
