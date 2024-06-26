@@ -6,7 +6,12 @@ import datasets
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from src.configs import DatasetConfig
-from .base import DatasetNoisifier, DatasetRewardTrainerPreprocessor, ConstructFromConfig
+from .base import (
+    DatasetNoisifier,
+    DatasetRewardTrainerPreprocessor,
+    ConstructFromConfig,
+)
+
 
 class OpenAIHumanFeedbackDatasetPreprocessor(
     DatasetRewardTrainerPreprocessor,
@@ -22,7 +27,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         cfg: DatasetConfig,
     ) -> datasets.Dataset:
         num_samples_to_add_noise = int(cfg.dataset_noise_level * len(dataset))
-        
+
         np.random.seed(cfg.dataset_noise_seed)
         noise_indices = np.random.choice(
             len(dataset), num_samples_to_add_noise, replace=False
@@ -52,15 +57,23 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         examples: dict[str, Any],
         tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
     ) -> dict[str, Any]:
-        new_examples = { "prompt" : [], "chosen" :  [], "rejected" : []}
-        
-        for info, summary, choice in zip(examples["info"], examples["summaries"], examples["choice"]):
+        new_examples = {"prompt": [], "chosen": [], "rejected": []}
+
+        for info, summary, choice in zip(
+            examples["info"], examples["summaries"], examples["choice"]
+        ):
             prompt = info["post"]
             chosen = summary[choice]["text"]
             rejected = summary[1 - choice]["text"]
-            
-            chosen = [{ "content" : prompt, "role" : "user"}, { "content" : chosen, "role" : "assistant"}]
-            rejected = [{ "content" : prompt, "role" : "user"}, { "content" : rejected, "role" : "assistant"}]
+
+            chosen = [
+                {"content": prompt, "role": "user"},
+                {"content": chosen, "role": "assistant"},
+            ]
+            rejected = [
+                {"content": prompt, "role": "user"},
+                {"content": rejected, "role": "assistant"},
+            ]
 
             chosen = tokenizer.apply_chat_template(chosen, tokenize=False)
             rejected = tokenizer.apply_chat_template(rejected, tokenize=False)
@@ -69,17 +82,17 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             new_examples["chosen"].append(chosen)
             new_examples["rejected"].append(rejected)
         return new_examples
-    
+
     @classmethod
     def preprocess_batch_for_ppo(
         cls,
         examples: dict[str, Any],
         tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
     ) -> dict[str, Any]:
-        new_examples = { "input_ids" : [], "lengths" :  []}
-        
+        new_examples = {"input_ids": [], "lengths": []}
+
         for info in examples["info"]:
-            chat_template_dict = [{ "content" : info["post"], "role" : "user"}]
+            chat_template_dict = [{"content": info["post"], "role": "user"}]
             input_ids = tokenizer.apply_chat_template(
                 chat_template_dict,
                 padding=False,
@@ -89,26 +102,30 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             new_examples["lengths"].append(len(input_ids))
 
         return new_examples
-    
+
     @classmethod
     def preprocess_batch_for_kto(
         cls,
         examples: dict[str, Any],
         tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
     ) -> dict[str, Any]:
-        new_examples = { "prompt" : [], "completion" :  [], "label" : []}
-        
-        for info, summary, choice in zip(examples["info"], examples["summaries"], examples["choice"]):
+        new_examples = {"prompt": [], "completion": [], "label": []}
+
+        for info, summary, choice in zip(
+            examples["info"], examples["summaries"], examples["choice"]
+        ):
             prompt = info["post"]
             chosen = summary[choice]["text"]
             rejected = summary[1 - choice]["text"]
-            
-            chosen = [{ "content" : chosen, "role" : "assistant"}]
-            rejected = [{ "content" : rejected, "role" : "assistant"}]
+
+            chosen = [{"content": chosen, "role": "assistant"}]
+            rejected = [{"content": rejected, "role": "assistant"}]
 
             chosen = tokenizer.apply_chat_template(chosen, tokenize=False)
             rejected = tokenizer.apply_chat_template(rejected, tokenize=False)
-            prompt = tokenizer.apply_chat_template([{ "content" : prompt, "role" : "user"}], tokenize=False)
+            prompt = tokenizer.apply_chat_template(
+                [{"content": prompt, "role": "user"}], tokenize=False
+            )
 
             new_examples["prompt"].append(prompt)
             new_examples["completion"].append(chosen)
@@ -125,7 +142,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         cls,
         examples: dict[str, Any],
         tokenizer: Union[PreTrainedTokenizerFast, PreTrainedTokenizer],
-        max_length: int = 128
+        max_length: int = 128,
     ) -> dict[str, Any]:
         new_examples = {
             "input_ids_chosen": [],
@@ -152,14 +169,10 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             )
 
         return new_examples
-    
+
     @classmethod
     def dpo_build(
-        cls,
-        dataset_name: str,
-        tokenizer,
-        dataset_noise_level,
-        dataset_noise_seed
+        cls, dataset_name: str, tokenizer, dataset_noise_level, dataset_noise_seed
     ) -> datasets.DatasetDict:
         dataset_dict = datasets.load_dataset(dataset_name, "comparisons")
         assert isinstance(dataset_dict, datasets.DatasetDict)
@@ -170,17 +183,25 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             return example
 
         def preprocess_batch_for_dpo(
-                examples: dict[str, Any],
-            ) -> dict[str, Any]:
-            new_examples = { "prompt" : [], "chosen" :  [], "rejected" : []}
-        
-            for info, summary, choice in zip(examples["info"], examples["summaries"], examples["choice"]):
+            examples: dict[str, Any],
+        ) -> dict[str, Any]:
+            new_examples = {"prompt": [], "chosen": [], "rejected": []}
+
+            for info, summary, choice in zip(
+                examples["info"], examples["summaries"], examples["choice"]
+            ):
                 prompt = info["post"]
                 chosen = summary[choice]["text"]
                 rejected = summary[1 - choice]["text"]
-                
-                chosen = [{ "content" : prompt, "role" : "user"}, { "content" : chosen, "role" : "assistant"}]
-                rejected = [{ "content" : prompt, "role" : "user"}, { "content" : rejected, "role" : "assistant"}]
+
+                chosen = [
+                    {"content": prompt, "role": "user"},
+                    {"content": chosen, "role": "assistant"},
+                ]
+                rejected = [
+                    {"content": prompt, "role": "user"},
+                    {"content": rejected, "role": "assistant"},
+                ]
 
                 chosen = tokenizer.apply_chat_template(chosen, tokenize=False)
                 rejected = tokenizer.apply_chat_template(rejected, tokenize=False)
@@ -194,9 +215,10 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         processed_train = dataset_dict["train"]
         num_samples_to_add_noise = int(dataset_noise_level * len(processed_train))
         np.random.seed(dataset_noise_seed)
-        noise_indices = np.random.choice(len(processed_train), num_samples_to_add_noise, replace=False)
+        noise_indices = np.random.choice(
+            len(processed_train), num_samples_to_add_noise, replace=False
+        )
         processed_train = processed_train.map(flip_label, with_indices=True)
-        
         # selecting 2000 samples from validation split
         dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
         processed_validation = dataset_dict["validation"]
@@ -205,13 +227,13 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             preprocess_batch_for_dpo,
             batched=True,
             num_proc=4,
-            )
+        )
         processed_validation = processed_validation.map(
             preprocess_batch_for_dpo,
             batched=True,
             num_proc=4,
-            )
-        
+        )
+
         return datasets.DatasetDict(
             {
                 "train": processed_train,
@@ -220,10 +242,7 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
         )
 
     @classmethod
-    def from_config(
-        cls,
-        cfg: DatasetConfig
-    ) -> datasets.DatasetDict:
+    def from_config(cls, cfg: DatasetConfig) -> datasets.DatasetDict:
         dataset_dict = datasets.load_dataset(cls.DATASET_URL, "comparisons")
         assert isinstance(dataset_dict, datasets.DatasetDict)
 
@@ -238,13 +257,12 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             )
             tokenizer.pad_token = tokenizer.eos_token
             tokenizer.pad_token_id = tokenizer.eos_token_id
-            
+
             processed_train = processed_train.map(
                 functools.partial(
                     cls.preprocess_batch_for_reward_trainer,
                     tokenizer=tokenizer,
                     max_length=cfg.max_token_length,
-                    
                 ),
                 batched=True,
                 num_proc=4,
@@ -258,14 +276,16 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 batched=True,
                 num_proc=4,
             )
-            
+
             processed_train = processed_train.filter(
-                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length and len(x["input_ids_rejected"]) <= cfg.max_token_length
+                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length
+                and len(x["input_ids_rejected"]) <= cfg.max_token_length
             )
             processed_validation = processed_validation.filter(
-                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length and len(x["input_ids_rejected"]) <= cfg.max_token_length
+                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length
+                and len(x["input_ids_rejected"]) <= cfg.max_token_length
             )
-            
+
         elif cfg.preprocess_for_dpo:
             tokenizer = cfg.preprocess_dpo_tokenizer
             processed_train = processed_train.map(
@@ -305,8 +325,12 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 num_proc=4,
             )
 
-            processed_train = processed_train.filter(lambda x: x["lengths"] <= cfg.max_token_length)
-            processed_validation = processed_validation.filter(lambda x: x["lengths"] <= cfg.max_token_length)
+            processed_train = processed_train.filter(
+                lambda x: x["lengths"] <= cfg.max_token_length
+            )
+            processed_validation = processed_validation.filter(
+                lambda x: x["lengths"] <= cfg.max_token_length
+            )
 
         elif cfg.preprocess_for_kto:
             tokenizer = cfg.preprocess_kto_tokenizer
@@ -329,8 +353,30 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 num_proc=4,
             )
 
-        else:
-            raise NotImplementedError
+        elif cfg.preprocess_for_rloo:
+            tokenizer = cfg.preprocess_rloo_tokenizer
+
+            # Same as PPO?
+            processed_train = processed_train.map(
+                functools.partial(
+                    cls.preprocess_batch_for_ppo,
+                    tokenizer=tokenizer,
+                ),
+                remove_columns=processed_train.column_names,
+                batched=True,
+                num_proc=4,
+            )
+
+            # Same as PPO?
+            processed_validation = processed_validation.map(
+                functools.partial(
+                    cls.preprocess_batch_for_ppo,
+                    tokenizer=tokenizer,
+                ),
+                remove_columns=processed_validation.column_names,
+                batched=True,
+                num_proc=4,
+            )
 
         return datasets.DatasetDict(
             {
