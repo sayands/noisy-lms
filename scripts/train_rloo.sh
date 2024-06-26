@@ -6,7 +6,7 @@ python $NOISY_LM_DIR/src/trainers/rloo_trainer.py \
     --output_dir /scratch/users/sdsarkar/CSNLP \
     --report_to wandb \
     --run_name train_rloo \
-    --reward_model_path /scratch/users/sdsarkar/CSNLP/rm_gpt/train_rm_gpt2_00/checkpoint-29000 \
+    --reward_model_path /scratch/users/sdsarkar/CSNLP/train_rm_00/checkpoint-29000 \
     --model_name_or_path /scratch/users/sdsarkar/CSNLP/train_sft_gpt2/checkpoint-36000 \
     --tokenizer_path gpt2 \
     --dataset_path openai/summarize_from_feedback \
