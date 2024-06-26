@@ -190,14 +190,14 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 new_examples["rejected"].append(rejected)
             return new_examples
 
-        #adding noise to dataset train split
+        # adding noise to dataset train split
         processed_train = dataset_dict["train"]
         num_samples_to_add_noise = int(dataset_noise_level * len(processed_train))
         np.random.seed(dataset_noise_seed)
         noise_indices = np.random.choice(len(processed_train), num_samples_to_add_noise, replace=False)
         processed_train = processed_train.map(flip_label, with_indices=True)
         
-        #selecting 2000 samples from validation split
+        # selecting 2000 samples from validation split
         dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
         processed_validation = dataset_dict["validation"]
 
@@ -218,7 +218,6 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 "validation": processed_validation,
             }
         )
-
 
     @classmethod
     def from_config(
