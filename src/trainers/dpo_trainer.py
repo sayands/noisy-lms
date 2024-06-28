@@ -96,7 +96,9 @@ if __name__ == "__main__":
         ]
 
     # Dataset
-    dataset = build_dataset('DPO', args.dataset_name, tokenizer, dataset_config.dataset_noise_level, dataset_config.dataset_noise_seed)
+    dataset = build_dataset('DPO', args.dataset_name, tokenizer, 
+                            dataset_noise_level=dataset_config.dataset_noise_level, 
+                            dataset_noise_seed=dataset_config.dataset_noise_seed)
     dataset = dataset.select_columns(['prompt', 'chosen', 'rejected'])
 
     train_dataset = dataset["train"]

@@ -4,6 +4,7 @@ from typing import Any, Protocol, Union
 
 import datasets
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
+from trl.core import LengthSampler
 
 from src.configs import DatasetConfig
 from .base import DatasetNoisifier, DatasetRewardTrainerPreprocessor, ConstructFromConfig
@@ -218,18 +219,42 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 "validation": processed_validation,
             }
         )
+    
+    @classmethod
+    def nsampler_build(cls, 
+                       dataset_name, 
+                       tokenizer, 
+                       nsampler_config
+                       )-> datasets.DatasetDict:
+        dataset_dict = datasets.load_dataset(dataset_name, "comparisons")
+        assert isinstance(dataset_dict, datasets.DatasetDict)
+        
+        dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
+        processed_validation = dataset_dict["validation"]
+
+        if nsampler_config.sample_input_length:
+            input_size = LengthSampler(nsampler_config.input_min_text_length, nsampler_config.input_max_text_length)
+
+        def tokenize(sample):
+            if nsampler_config.sample_input_length:
+                sample["input_ids"] = tokenizer.encode(sample["info"]["post"])[: input_size()]
+            else:
+                sample["input_ids"] = tokenizer.encode(sample["info"]["post"])
+            sample["query"] = tokenizer.decode(sample["input_ids"])
+            return sample
+
+        processed_validation = processed_validation.map(tokenize, batched=False)
+        processed_validation.set_format(type="torch")
+        return processed_validation
 
     @classmethod
-    def from_config(
-        cls,
-        cfg: DatasetConfig
-    ) -> datasets.DatasetDict:
+    def from_config(cls, cfg: DatasetConfig) -> datasets.DatasetDict:
         dataset_dict = datasets.load_dataset(cls.DATASET_URL, "comparisons")
         assert isinstance(dataset_dict, datasets.DatasetDict)
 
         dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
         processed_train = cls.add_noise(dataset_dict["train"], cfg)
-        processed_validation = cls.add_noise(dataset_dict["validation"], cfg)
+        processed_validation = dataset_dict["validation"]
 
         if cfg.preprocess_for_reward_trainer:
             assert cfg.preprocess_tokenizer
@@ -238,13 +263,12 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
             )
             tokenizer.pad_token = tokenizer.eos_token
             tokenizer.pad_token_id = tokenizer.eos_token_id
-            
+
             processed_train = processed_train.map(
                 functools.partial(
                     cls.preprocess_batch_for_reward_trainer,
                     tokenizer=tokenizer,
                     max_length=cfg.max_token_length,
-                    
                 ),
                 batched=True,
                 num_proc=4,
@@ -258,14 +282,16 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 batched=True,
                 num_proc=4,
             )
-            
+
             processed_train = processed_train.filter(
-                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length and len(x["input_ids_rejected"]) <= cfg.max_token_length
+                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length
+                and len(x["input_ids_rejected"]) <= cfg.max_token_length
             )
             processed_validation = processed_validation.filter(
-                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length and len(x["input_ids_rejected"]) <= cfg.max_token_length
+                lambda x: len(x["input_ids_chosen"]) <= cfg.max_token_length
+                and len(x["input_ids_rejected"]) <= cfg.max_token_length
             )
-            
+
         elif cfg.preprocess_for_dpo:
             tokenizer = cfg.preprocess_dpo_tokenizer
             processed_train = processed_train.map(
@@ -305,8 +331,12 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 num_proc=4,
             )
 
-            processed_train = processed_train.filter(lambda x: x["lengths"] <= cfg.max_token_length)
-            processed_validation = processed_validation.filter(lambda x: x["lengths"] <= cfg.max_token_length)
+            processed_train = processed_train.filter(
+                lambda x: x["lengths"] <= cfg.max_token_length
+            )
+            processed_validation = processed_validation.filter(
+                lambda x: x["lengths"] <= cfg.max_token_length
+            )
 
         elif cfg.preprocess_for_kto:
             tokenizer = cfg.preprocess_kto_tokenizer
@@ -329,8 +359,30 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 num_proc=4,
             )
 
-        else:
-            raise NotImplementedError
+        elif cfg.preprocess_for_rloo:
+            tokenizer = cfg.preprocess_rloo_tokenizer
+
+            # Same as PPO?
+            processed_train = processed_train.map(
+                functools.partial(
+                    cls.preprocess_batch_for_ppo,
+                    tokenizer=tokenizer,
+                ),
+                remove_columns=processed_train.column_names,
+                batched=True,
+                num_proc=4,
+            )
+
+            # Same as PPO?
+            processed_validation = processed_validation.map(
+                functools.partial(
+                    cls.preprocess_batch_for_ppo,
+                    tokenizer=tokenizer,
+                ),
+                remove_columns=processed_validation.column_names,
+                batched=True,
+                num_proc=4,
+            )
 
         return datasets.DatasetDict(
             {

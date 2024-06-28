@@ -22,3 +22,18 @@ class DatasetConfig:
 @dataclass
 class TokenizerConfig:
     tokenizer_path: str
+
+@dataclass
+class NSamplerConfig:
+    lm_model_name_or_path: str
+    reward_model_name_or_path: str
+    csv_save_dir: str
+    sample_input_length: bool = False
+    input_min_text_length: int = 50
+    input_max_text_length: int = 128
+    output_min_length: int = 10
+    output_max_length: int = 25
+    n_best_of : int = 4
+    num_samples: int = 2000
+    sampling_seed: int = 42
+
