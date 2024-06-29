@@ -20,9 +20,8 @@ python $NOISY_LM_DIR/src/trainers/ppo_trainer.py \
     --dataset_noise_level 0.0 \
     --dataset_noise_seed 42 \
     --preprocess_for_ppo \
-    --learning_rate 1e-3 \
-    --batch_size 4 \
-    --mini_batch_size 4 \
+    --batch_size 16 \
+    --mini_batch_size 16 \
     --gradient_accumulation_steps 1 \
     --ppo_epochs 5 \
     --steps 1000 \
