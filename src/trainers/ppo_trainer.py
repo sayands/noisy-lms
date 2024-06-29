@@ -45,59 +45,12 @@ from trl.trainer.utils import SIMPLE_QUERY_CHAT_TEMPLATE
 from accelerate.utils import ProjectConfiguration, gather_object, is_deepspeed_available
 
 from src.utils import common
+from src.utils import logging
 
 tqdm.pandas()
 device = 0 if torch.cuda.is_available() else "cpu"
 
-def log_stats(trainer: PPOTrainer,
-        stats: dict,
-        batch: dict,
-        rewards: List[torch.FloatTensor],
-        columns_to_log: typing.Iterable[str] = ("query", "response")):
-    
-    if not isinstance(rewards, torch.Tensor):
-            rewards = torch.tensor(rewards).to(trainer.current_device)
-    rewards = trainer.accelerator.gather(rewards).flatten()
-    batch_list = [batch[column_to_log] for column_to_log in columns_to_log]
-
-    if trainer.is_distributed:
-        gathered_batch_list = []
-        for b in batch_list:
-            flattened = gather_object(b)
-            gathered_batch_list.append(flattened)
-        batch_list = gathered_batch_list
-    
-    logs = {}
-
-    # Log stats
-    if "query" not in batch.keys() and "response" not in batch.keys():
-        # warn the user that the game logs will not be logged
-        warnings.warn(
-            "The game logs will not be logged because the batch does not contain the keys 'query' and "
-            "'response'. "
-        )
-    
-    table_rows = [list(r) for r in zip(*batch_list, rewards.cpu().tolist())]
-    logs.update({"game_log": wandb.Table(columns=[*columns_to_log, "reward"], rows=table_rows)})
-
-    logs.update(stats)
-
-    # manually cast in fp32 for bf16 torch tensors
-    for k, v in logs.items():
-        if isinstance(v, torch.Tensor) and v.dtype == torch.bfloat16:
-            logs[k] = v.float()
-
-    logs["env/reward_mean"] = torch.mean(rewards).cpu().numpy().item()
-    logs["env/reward_std"] = torch.std(rewards).cpu().numpy().item()
-    logs["env/reward_dist"] = rewards.cpu().numpy()
-    
-    trainer.current_step += 1
-    trainer.accelerator.log(
-                logs,
-                step=trainer.current_step)
-
 if __name__ == "__main__":
-
     #Parsing
     parser = TrlParser((PPOSaveConfig, PPOConfig, DatasetConfig, TokenizerConfig))
     args, ppo_config, dataset_config, tokenizer_config = parser.parse_args_into_dataclasses()
@@ -183,7 +136,9 @@ if __name__ == "__main__":
 
         # Run PPO step
         stats = ppo_trainer.step(query_tensors, response_tensors, rewards)
-        log_stats(ppo_trainer, stats, batch, rewards, columns_to_log=["query", "response", "ref_response", "ref_rewards"])
+        ppo_trainer.current_step += 1
+        logging.log_ppo_stats(ppo_trainer, stats, batch, rewards, 
+                            columns_to_log=["query", "response", "ref_response", "ref_rewards"])
 
     #save model
     ppo_trainer.save_pretrained(args.output_dir)
