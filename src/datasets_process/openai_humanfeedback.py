@@ -1,6 +1,7 @@
 import numpy as np
 import functools
 from typing import Any, Protocol, Union
+import torch
 
 import datasets
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
@@ -219,7 +220,33 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 "validation": processed_validation,
             }
         )
+
+    @classmethod
+    def ppo_build(cls, 
+                  dataset_name,
+                  tokenizer
+                  ) -> torch.utils.data.Dataset:
     
+        dataset_dict = datasets.load_dataset(dataset_name, "comparisons")
+        assert isinstance(dataset_dict, datasets.DatasetDict)
+
+        def preprocess_batch_for_ppo(examples):
+            examples["input_ids"] = tokenizer.encode(examples["info"]["post"])
+            examples["query"] = tokenizer.decode(examples["input_ids"])
+            examples["lengths"] = len(examples["input_ids"])
+            return examples
+
+        processed_train = dataset_dict["train"]
+
+        processed_train = processed_train.map(
+            preprocess_batch_for_ppo,
+            batched=False,
+            )
+        processed_train.select_columns(["input_ids", "query", "lengths"])
+        processed_train.set_format(type='torch')
+        
+        return processed_train
+
     @classmethod
     def nsampler_build(cls, 
                        dataset_name, 

@@ -37,3 +37,8 @@ class NSamplerConfig:
     num_samples: int = 2000
     sampling_seed: int = 42
 
+@dataclass
+class PPOSaveConfig:
+    output_dir: str
+    save_steps: int = 1000
+
