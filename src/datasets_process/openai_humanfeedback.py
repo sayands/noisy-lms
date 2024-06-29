@@ -1,9 +1,11 @@
 import numpy as np
 import functools
 from typing import Any, Protocol, Union
+import torch
 
 import datasets
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
+from trl.core import LengthSampler
 
 from src.configs import DatasetConfig
 from .base import (
@@ -240,6 +242,59 @@ class OpenAIHumanFeedbackDatasetPreprocessor(
                 "validation": processed_validation,
             }
         )
+
+    @classmethod
+    def ppo_build(cls, 
+                  dataset_name,
+                  tokenizer
+                  ) -> torch.utils.data.Dataset:
+    
+        dataset_dict = datasets.load_dataset(dataset_name, "comparisons")
+        assert isinstance(dataset_dict, datasets.DatasetDict)
+
+        def preprocess_batch_for_ppo(examples):
+            examples["input_ids"] = tokenizer.encode(examples["info"]["post"])
+            examples["query"] = tokenizer.decode(examples["input_ids"])
+            examples["lengths"] = len(examples["input_ids"])
+            return examples
+
+        processed_train = dataset_dict["train"]
+
+        processed_train = processed_train.map(
+            preprocess_batch_for_ppo,
+            batched=False,
+            )
+        processed_train.select_columns(["input_ids", "query", "lengths"])
+        processed_train.set_format(type='torch')
+        
+        return processed_train
+
+    @classmethod
+    def nsampler_build(cls, 
+                       dataset_name, 
+                       tokenizer, 
+                       nsampler_config
+                       )-> datasets.DatasetDict:
+        dataset_dict = datasets.load_dataset(dataset_name, "comparisons")
+        assert isinstance(dataset_dict, datasets.DatasetDict)
+        
+        dataset_dict["validation"] = dataset_dict["validation"].select(range(2000))
+        processed_validation = dataset_dict["validation"]
+
+        if nsampler_config.sample_input_length:
+            input_size = LengthSampler(nsampler_config.input_min_text_length, nsampler_config.input_max_text_length)
+
+        def tokenize(sample):
+            if nsampler_config.sample_input_length:
+                sample["input_ids"] = tokenizer.encode(sample["info"]["post"])[: input_size()]
+            else:
+                sample["input_ids"] = tokenizer.encode(sample["info"]["post"])
+            sample["query"] = tokenizer.decode(sample["input_ids"])
+            return sample
+
+        processed_validation = processed_validation.map(tokenize, batched=False)
+        processed_validation.set_format(type="torch")
+        return processed_validation
 
     @classmethod
     def from_config(cls, cfg: DatasetConfig) -> datasets.DatasetDict:
