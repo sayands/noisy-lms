@@ -4,7 +4,7 @@ export HF_DATASETS_CACHE=/scratch/users/sdsarkar/hf_cache/datasets
 
 python $NOISY_LM_DIR/src/metrics/generate_reward_scores.py \
     --dataset_path openai/summarize_from_feedback \
-    --lm_model_name_or_path /scratch/users/sdsarkar/CSNLP/train_ppo_00  \
+    --lm_model_name_or_path /scratch/users/sdsarkar/CSNLP/train_ppo_001  \
     --reward_model_name_or_path /scratch/users/sdsarkar/CSNLP/train_rm_00/checkpoint-29000 \
     --tokenizer_path gpt2 \
     --sampling_seed 42 \
@@ -20,7 +20,7 @@ python $NOISY_LM_DIR/src/metrics/generate_reward_scores.py \
     --temperature 1.0 \
     --top_k 0 \
     --top_p 1.0 \
-    --csv_save_dir /scratch/users/sdsarkar/CSNLP/reward_output/eval_rewards_ppo_00_val.csv \
+    --csv_save_dir /scratch/users/sdsarkar/CSNLP/reward_output/eval_rewards_ppo_001_val.csv \
 
 #additional inputs: default set to false, need to add for other kind of sampling generations
     # --early_stopping \
