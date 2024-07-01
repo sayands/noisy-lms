@@ -34,8 +34,8 @@ if __name__ == "__main__":
 
     dataset = build_dataset('nsampler', dataset_config.dataset_path, tokenizer, nsampler_config=sampler_config)
 
-    gen_kwargs = {"min_length": -1, "top_k": 0.0, "top_p": 1.0, "do_sample": True, "pad_token_id": tokenizer.eos_token_id}
-    sent_kwargs = {"top_k": None, "function_to_apply": "none"}
+    gen_kwargs = {"top_k": 0.0, "top_p": 1.0, "do_sample": True, "pad_token_id": tokenizer.eos_token_id}
+    sent_kwargs = {"top_k": None, "function_to_apply": "sigmoid"}
 
     output_length_sampler = LengthSampler(sampler_config.output_min_length, sampler_config.output_max_length)
     output_data = dict()
