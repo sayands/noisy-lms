@@ -51,14 +51,14 @@ tqdm.pandas()
 device = 0 if torch.cuda.is_available() else "cpu"
 
 if __name__ == "__main__":
-    #Parsing
+    # Parsing
     parser = TrlParser((PPOSaveConfig, PPOConfig, DatasetConfig, TokenizerConfig))
     args, ppo_config, dataset_config, tokenizer_config = parser.parse_args_into_dataclasses()
 
-    #Name and Output Directory Creation
-    dataset_noise_level_name = str(dataset_config.dataset_noise_level).split('.')
-    dataset_noise_level_name = str(dataset_noise_level_name[0]) + str(dataset_noise_level_name[1])
-    ppo_config.exp_name =  ppo_config.exp_name + '_' + dataset_noise_level_name
+    # Name and Output Directory Creation
+    # dataset_noise_level_name = str(dataset_config.dataset_noise_level).split('.')
+    # dataset_noise_level_name = str(dataset_noise_level_name[0]) + str(dataset_noise_level_name[1])
+    # ppo_config.exp_name =  ppo_config.exp_name + '_' + dataset_noise_level_name
     ppo_config.tracker_kwargs={"wandb": {"name": ppo_config.exp_name}} 
     args.output_dir = osp.join(args.output_dir, ppo_config.exp_name)
     common.ensure_dir(args.output_dir)
@@ -140,5 +140,6 @@ if __name__ == "__main__":
         logging.log_ppo_stats(ppo_trainer, stats, batch, rewards, 
                             columns_to_log=["query", "response", "ref_response", "ref_rewards"])
 
-    #save model
-    ppo_trainer.save_pretrained(args.output_dir)
+        #save model
+        if _epoch % 2000 == 0:
+            ppo_trainer.save_pretrained(args.output_dir)

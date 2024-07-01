@@ -1,5 +1,7 @@
 export WANDB_PROJECT="noisy-lms"
 export NOISY_LM_DIR=/home/users/sdsarkar/code/CSNLP/noisy-lms
+export HF_HOME=/scratch/users/sdsarkar/hf_cache/
+export HF_DATASETS_CACHE=/scratch/users/sdsarkar/hf_cache/datasets
 
 cd $NOISY_LM_DIR
 python $NOISY_LM_DIR/src/trainers/rloo_trainer.py \
@@ -15,15 +17,10 @@ python $NOISY_LM_DIR/src/trainers/rloo_trainer.py \
     --dataset_noise_seed 42 \
     --preprocess_for_rloo \
     --total_episodes 10000 \
-    --learning_rate 1e-3 \
-    --num_ppo_epochs 1 \
+    --num_ppo_epochs 4 \
     --num_mini_batches 1 \
     --per_device_train_batch_size 64 \
     --gradient_accumulation_steps 1 \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 8 \
-    --gradient_accumulation_steps 1 \
-    --num_train_epochs 5 \
-    --eval_steps 1000 \
-    --save_steps 1000 \
-    --logging_steps 50 
+    --non_eos_penalty
