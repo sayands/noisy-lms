@@ -16,11 +16,10 @@ python $NOISY_LM_DIR/src/trainers/rloo_trainer.py \
     --dataset_noise_level 0.0 \
     --dataset_noise_seed 42 \
     --preprocess_for_rloo \
-    --total_episodes 10000 \
+    --total_episodes 2500 \
     --num_ppo_epochs 4 \
     --num_mini_batches 1 \
-    --per_device_train_batch_size 64 \
+    --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 1 \
-    --per_device_train_batch_size 16 \
-    --per_device_eval_batch_size 8 \
+    --per_device_eval_batch_size 4 \
     --non_eos_penalty
