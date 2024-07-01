@@ -72,7 +72,9 @@ if __name__ == "__main__":
     ]
     output_data["score"] = [a.max().item() for a in scores_best_of]
 
-    print(np.mean(output_data["score"]))
+    reward_mean = np.mean(output_data["score"])
+    print(reward_mean)
+    
     # store results in a dataframe
     df_results = pd.DataFrame(output_data)
     df_results.to_csv(gen_config.csv_save_dir)

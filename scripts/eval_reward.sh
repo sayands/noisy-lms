@@ -20,7 +20,7 @@ python $NOISY_LM_DIR/src/metrics/generate_reward_scores.py \
     --temperature 1.0 \
     --top_k 0 \
     --top_p 1.0 \
-    --csv_save_dir /scratch/users/sdsarkar/CSNLP/reward_output/eval_rewards_ppo_00.csv \
+    --csv_save_dir /scratch/users/sdsarkar/CSNLP/reward_output/eval_rewards_ppo_00_val.csv \
 
 #additional inputs: default set to false, need to add for other kind of sampling generations
     # --early_stopping \
