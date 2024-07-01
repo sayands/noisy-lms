@@ -1,11 +1,11 @@
-export NOISY_LM_DIR=/home/users/sdsarkar/code/CSNLP/noisy-lms
-export HF_HOME=/scratch/users/sdsarkar/hf_cache/
-export HF_DATASETS_CACHE=/scratch/users/sdsarkar/hf_cache/datasets
+export NOISY_LM_DIR=/local/home/sdebsarkar/Documents/code/CSNLP-Project/noisy-lms
+export HF_HOME=/media/sdebsarkar/extra-hdd/CSNLP/hf_cache
+export HF_DATASETS_CACHE=/media/sdebsarkar/extra-hdd/CSNLP/hf_cache/datasets
 
 python $NOISY_LM_DIR/src/metrics/generate_reward_scores.py \
     --dataset_path openai/summarize_from_feedback \
-    --lm_model_name_or_path /scratch/users/sdsarkar/CSNLP/train_ppo_001  \
-    --reward_model_name_or_path /scratch/users/sdsarkar/CSNLP/train_rm_00/checkpoint-29000 \
+    --lm_model_name_or_path /media/sdebsarkar/extra-hdd/CSNLP/train_ppo_001 \
+    --reward_model_name_or_path /media/sdebsarkar/extra-hdd/CSNLP/train_rm_00/checkpoint-29000 \
     --tokenizer_path gpt2 \
     --sampling_seed 42 \
     --sample_input_length \
@@ -17,14 +17,15 @@ python $NOISY_LM_DIR/src/metrics/generate_reward_scores.py \
     --num_samples 500 \
     --num_beams 1 \
     --no_repeat_ngram_size 0 \
-    --temperature 1.0 \
+    --temperature 0.25 \
     --top_k 0 \
     --top_p 1.0 \
-    --csv_save_dir /scratch/users/sdsarkar/CSNLP/reward_output/eval_rewards_ppo_001_val.csv \
+    --do_sample \
+    --csv_save_dir /media/sdebsarkar/extra-hdd/CSNLP/reward_output/eval_ppo_001_val_temp.csv
 
 #additional inputs: default set to false, need to add for other kind of sampling generations
-    # --early_stopping \
-    # --do_sample \
+# --early_stopping \
+# --do_sample \
 
 # ---------------------------------------------------------------------------
 # Experiments
