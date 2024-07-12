@@ -8,6 +8,12 @@
 
 </div>
 
+### Abstract:
+
+Reinforcement Learning from Human Feedback (RLHF) has demonstrated efficacy in fine-tuning language models for complex tasks. However, the reliance on human annotations and the subsequent reward model renders the RLHF pipeline vulnerable to errors and noise. In this report, we examine the impact of noise on LM preference optimization methods. By introducing noise into the preference annotation data, we analyze the performance of various language model preference optimization pipelines, particularly Proximal Policy Optimization (PPO), REINFORCE Leave-One-Out (RLOO), Direct Preference Optimization (DPO), and N-Sampling. We assess the generated outputs based on the frontier of achieved reward and their KL-divergence from the reference language model, providing insights into the robustness of these methods against noisy data. Our analysis shows that DPO outperforms the other approaches in most cases and is the most resilient algorithm.
+
+[Project Report](https://github.com/sayands/noisy-lms/tree/main/assets/project_report.pdf)
+
 ### Dependencies :memo:
 The main dependencies of the project are the following:
 ```yaml
