@@ -6,6 +6,8 @@
   <h3 align="center"> Professor: <a href="https://www.mrinmaya.io/">Mrinmaya Sachan</a> </h3>
   <h3 align="center"> Project Supervisor: <a href="https://shehzaadzd.github.io/">Shehzaad Dhuliawala</a> </h3>
 
+![teaser](https://github.com/sayands/noisy-lms/tree/main/assets/teaser.png)
+
 </div>
 
 ### Abstract:
