@@ -17,8 +17,7 @@ if __name__ == "__main__":
     parser.add_argument('--lm_reward_score_csv_path', type=str, help='lm_reward_score_csv_path')
     parser.add_argument('--ref_model_reward_score_csv_path', type=str, help='ref_model_reward_score_csv_path')
     kl_config = parser.parse_args()
-    #parser = TrlParser((KLScoreConfig))
-    #kl_config = parser.parse_args_and_config()
+    
     lm_model_df = pd.read_csv(kl_config.lm_reward_score_csv_path)
     ref_model_df = pd.read_csv(kl_config.ref_model_reward_score_csv_path)
 

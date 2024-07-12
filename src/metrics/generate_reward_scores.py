@@ -43,7 +43,7 @@ if __name__ == "__main__":
                   "top_k": gen_config.top_k, 
                   "top_p": gen_config.top_p, 
                   "pad_token_id": tokenizer.eos_token_id}
-    sent_kwargs = {"top_k": None, "function_to_apply": "sigmoid"}
+    sent_kwargs = {"top_k": None}
 
     output_length_sampler = LengthSampler(gen_config.output_min_length, gen_config.output_max_length)
     output_data = dict()
@@ -77,4 +77,5 @@ if __name__ == "__main__":
 
     # store results in a dataframe
     df_results = pd.DataFrame(output_data)
+    print(gen_config.csv_save_dir)
     df_results.to_csv(gen_config.csv_save_dir)
